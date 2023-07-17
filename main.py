@@ -27,8 +27,8 @@ class Name(Field):
 class Phone(Field):
     @Field.value.setter
     def value(self, new_value):
-        if len(new_value) != 13 or not new_value.startswith("+38"):
-            raise ValueError("Invalid phone number")
+        # if len(new_value) != 13 or not new_value.startswith("+38"):
+        #     raise ValueError("Invalid phone number")
         self._value = new_value
 
 
@@ -47,7 +47,9 @@ class Birthday(Field):
 
 
 class Record:
-    def __init__(self, name: Name, phone: Phone = None, birthday: Birthday = None) -> None:
+    def __init__(self, name: Name, 
+                 phone: Phone = None, 
+                 birthday: Birthday = None) -> None:
         self.name = name
         self.phones = []
         self.birthday = birthday
@@ -88,6 +90,19 @@ class AddressBook(UserDict):
     def add_record(self, record: Record):
         self.data[str(record.name)] = record
         return f"Contact {record} add success"
+    
+    def iterator(self, rec_per_page=3):
+        record_counter = 0
+        result = ""
+        for record in self.values():
+            result += str(record) + '\n'
+            record_counter += 1
+            if record_counter >= rec_per_page:
+                yield result 
+                record_counter = 0
+                result = ""
+        if result:
+            yield result
 
     def __str__(self) -> str:
         return "\n".join(str(r) for r in self.data.values())
@@ -109,8 +124,8 @@ address_book = AddressBook()
 @input_error
 def add_contact(*args):
     name = Name(args[0])
-    phone = Phone(args[1])
-    birthday = Birthday(args[2])
+    phone = Phone(args[1]) if len(args) > 2 else None
+    birthday = Birthday(args[2]) if len(args) > 3 else None
     rec: Record = address_book.get(str(name))
     if rec:
         return rec.add_phone(phone)
@@ -142,16 +157,13 @@ def get_phone(*args):
 
 @input_error
 def show_all_contacts(*args):
+    pages = int(args[0]) if args else None
+    if pages:
+        result = ""
+        for page, recs in enumerate(address_book.iterator(pages), 1):
+            result += f"page {page} :\n{recs}"
+        return result
     return address_book
-    # if not address_book.data:
-    #     return "There are no contacts saved."
-
-    # result = ""
-    # for name, record in address_book.data.items():
-    #     phone_numbers = ", ".join(record.phones)
-    #     result += f"{name}: {phone_numbers}\n"
-
-    #return result
 
 
 def greeting_command(*args):
@@ -171,7 +183,7 @@ COMMANDS = {add_contact: ("add", ),
             get_phone: ("phone",),
             show_all_contacts: ("show all", ),
             greeting_command: ("hello", ),
-            exit_command: ("good bye", "close", "exit")
+            exit_command: ("good bye", "close", "exit"),
             }
 
 
@@ -197,7 +209,7 @@ def main():
 
 
 if __name__ == "__main__":
+    for _ in range(10):
+        rec1 = Record(Name(f"Bill_{_}"),Phone("+380997663345"),Birthday("20-10-2015"))
+        address_book.add_record(rec1)
     main()
-    # rec1 = Record("Bill","0997663","2020-10-15")
-    # print(rec1)
-    
